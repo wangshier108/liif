@@ -15,7 +15,7 @@ from datasets import register
 @register('image-folder')
 class ImageFolder(Dataset):
 
-    def __init__(self, root_path, split_file=None, split_key=None, first_k=None,
+    def __init__(self, root_path, root_path_mask, split_file=None, split_key=None, first_k=None,
                  repeat=1, cache='none'):
         self.repeat = repeat
         self.cache = cache
@@ -29,8 +29,11 @@ class ImageFolder(Dataset):
             filenames = filenames[:first_k]
 
         self.files = []
+        self.files_mask = []
         for filename in filenames:
             file = os.path.join(root_path, filename)
+            mask = os.path.join(root_path_mask, filename)
+
 
             if cache == 'none':
                 self.files.append(file)
@@ -52,12 +55,16 @@ class ImageFolder(Dataset):
             elif cache == 'in_memory':
                 self.files.append(transforms.ToTensor()(
                     Image.open(file).convert('RGB')))
+                self.files_mask.append(transforms.ToTensor()(
+                    Image.open(mask)))
 
     def __len__(self):
         return len(self.files) * self.repeat
 
     def __getitem__(self, idx):
         x = self.files[idx % len(self.files)]
+        mask = self.files_mask[idx % len(self.files)]
+        # print(f"x: {x.shape}, mask: {mask.shape}")
 
         if self.cache == 'none':
             return transforms.ToTensor()(Image.open(x).convert('RGB'))
@@ -70,7 +77,7 @@ class ImageFolder(Dataset):
             return x
 
         elif self.cache == 'in_memory':
-            return x
+            return (x, mask)
 
 
 @register('paired-image-folders')

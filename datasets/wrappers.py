@@ -10,7 +10,7 @@ from torchvision import transforms
 
 from datasets import register
 from utils import to_pixel_samples
-
+from why_utils import sample_coordinates
 
 @register('sr-implicit-paired')
 class SRImplicitPaired(Dataset):
@@ -103,7 +103,8 @@ class SRImplicitDownsampled(Dataset):
         return len(self.dataset)
 
     def __getitem__(self, idx):
-        img = self.dataset[idx]
+        # print("why:", self.dataset[idx])
+        img, mask = self.dataset[idx]
         s = random.uniform(self.scale_min, self.scale_max)
 
         if self.inp_size is None:
@@ -111,7 +112,8 @@ class SRImplicitDownsampled(Dataset):
             w_lr = math.floor(img.shape[-1] / s + 1e-9)
             img = img[:, :round(h_lr * s), :round(w_lr * s)] # assume round int
             img_down = resize_fn(img, (h_lr, w_lr))
-            crop_lr, crop_hr = img_down, img
+            mask = mask[:, :round(h_lr * s), :round(w_lr * s)] # assume round int
+            crop_lr, crop_hr, crop_mask = img_down, img, mask
         else:
             w_lr = self.inp_size
             w_hr = round(w_lr * s)
@@ -119,6 +121,7 @@ class SRImplicitDownsampled(Dataset):
             y0 = random.randint(0, img.shape[-1] - w_hr)
             crop_hr = img[:, x0: x0 + w_hr, y0: y0 + w_hr]
             crop_lr = resize_fn(crop_hr, w_lr)
+            crop_mask = mask[:, x0: x0 + w_hr, y0: y0 + w_hr]
 
         if self.augment:
             hflip = random.random() < 0.5
@@ -136,12 +139,15 @@ class SRImplicitDownsampled(Dataset):
 
             crop_lr = augment(crop_lr)
             crop_hr = augment(crop_hr)
+            crop_mask = augment(crop_mask)
 
         hr_coord, hr_rgb = to_pixel_samples(crop_hr.contiguous())
+        # print(f"crop_hr: ({len(crop_hr)}, {crop_hr.shape}),crop_mask: ({len(crop_mask)}, {crop_mask.shape}), hr_coord:({len(hr_coord)}, {hr_coord.shape}) , hr_rgb: ({len(hr_rgb)}, {hr_rgb.shape})")
 
         if self.sample_q is not None:
-            sample_lst = np.random.choice(
-                len(hr_coord), self.sample_q, replace=False)
+            # sample_lst = np.random.choice(
+            #     len(hr_coord), self.sample_q, replace=False)
+            sample_lst = sample_coordinates(crop_hr, self.sample_q, hr_coord, hr_rgb, False, crop_mask)
             hr_coord = hr_coord[sample_lst]
             hr_rgb = hr_rgb[sample_lst]
 

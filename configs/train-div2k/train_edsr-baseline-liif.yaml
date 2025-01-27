@@ -62,3 +62,4 @@ multi_step_lr:
 
 epoch_val: 1
 epoch_save: 100
+resume: /data/home/wanghanying/work/why/liif/save/_train_edsr-baseline-liif/epoch-last.pth

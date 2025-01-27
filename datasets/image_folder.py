@@ -19,6 +19,7 @@ class ImageFolder(Dataset):
                  repeat=1, cache='none'):
         self.repeat = repeat
         self.cache = cache
+        self.is_mask = False
 
         if split_file is None:
             filenames = sorted(os.listdir(root_path))
@@ -29,10 +30,13 @@ class ImageFolder(Dataset):
             filenames = filenames[:first_k]
 
         self.files = []
-        self.files_mask = []
+        if(root_path_mask):
+            self.files_mask = []
+            self.is_mask = True
         for filename in filenames:
             file = os.path.join(root_path, filename)
-            mask = os.path.join(root_path_mask, filename)
+            if(root_path_mask):
+                mask = os.path.join(root_path_mask, filename)
 
 
             if cache == 'none':
@@ -55,15 +59,17 @@ class ImageFolder(Dataset):
             elif cache == 'in_memory':
                 self.files.append(transforms.ToTensor()(
                     Image.open(file).convert('RGB')))
-                self.files_mask.append(transforms.ToTensor()(
-                    Image.open(mask)))
+                if(root_path_mask):
+                    self.files_mask.append(transforms.ToTensor()(
+                        Image.open(mask)))
 
     def __len__(self):
         return len(self.files) * self.repeat
 
     def __getitem__(self, idx):
         x = self.files[idx % len(self.files)]
-        mask = self.files_mask[idx % len(self.files)]
+        if(self.is_mask):
+            mask = self.files_mask[idx % len(self.files)]
         # print(f"x: {x.shape}, mask: {mask.shape}")
 
         if self.cache == 'none':
@@ -77,7 +83,10 @@ class ImageFolder(Dataset):
             return x
 
         elif self.cache == 'in_memory':
-            return (x, mask)
+            if(self.is_mask):
+                return (x, mask)
+            else:
+                return x
 
 
 @register('paired-image-folders')

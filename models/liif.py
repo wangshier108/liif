@@ -26,7 +26,7 @@ class LIIF(nn.Module):
             imnet_in_dim += 2 # attach coord
             if self.cell_decode:
                 imnet_in_dim += 2
-            print("why imnet_in_dim: ", imnet_in_dim)   #580
+            # print("why imnet_in_dim: ", imnet_in_dim)   #580
             self.imnet = models.make(imnet_spec, args={'in_dim': imnet_in_dim})
         else:
             self.imnet = None

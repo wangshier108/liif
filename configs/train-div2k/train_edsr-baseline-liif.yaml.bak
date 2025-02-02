@@ -2,6 +2,7 @@ train_dataset:
   dataset:
     name: image-folder
     args:
+      # root_path: ./load/div2k/DIV2K_train_HR
       root_path: /data/home/wanghanying/work/dataset/DIV2K/DIV2K_train_HR
       root_path_mask: /data/home/wanghanying/work/dataset/DIV2K/DIV2K_train_HR_mask
       repeat: 20
@@ -13,12 +14,13 @@ train_dataset:
       scale_max: 4
       augment: true
       sample_q: 2304
-  batch_size: 32
+  batch_size: 16
 
 val_dataset:
   dataset:
     name: image-folder
     args:
+      # root_path: ./load/div2k/DIV2K_valid_HR
       root_path: /data/home/wanghanying/work/dataset/DIV2K/DIV2K_valid_HR
       root_path_mask: /data/home/wanghanying/work/dataset/DIV2K/DIV2K_valid_HR_mask
       first_k: 10
@@ -40,7 +42,7 @@ model:
   name: liif
   args:
     encoder_spec:
-      name: rdn
+      name: edsr-baseline
       args:
         no_upsampling: true
     imnet_spec:
@@ -60,4 +62,12 @@ multi_step_lr:
 
 epoch_val: 1
 epoch_save: 100
-resume: /data/home/wanghanying/work/why/liif/save/_train_rdn-liif/epoch-last.pth
+
+# path
+path:
+  resume_state: ~
+  use_tb_logger: True
+  wandb:
+    project: ~
+    resume_id: ~
+  name: EDSR_DIV2K_test_wandb

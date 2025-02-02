@@ -15,7 +15,7 @@ from datasets import register
 @register('image-folder')
 class ImageFolder(Dataset):
 
-    def __init__(self, root_path, root_path_mask, split_file=None, split_key=None, first_k=None,
+    def __init__(self, root_path, root_path_mask=None, split_file=None, split_key=None, first_k=None,
                  repeat=1, cache='none'):
         self.repeat = repeat
         self.cache = cache
@@ -86,15 +86,15 @@ class ImageFolder(Dataset):
             if(self.is_mask):
                 return (x, mask)
             else:
-                return x
+                return (x, None)
 
 
 @register('paired-image-folders')
 class PairedImageFolders(Dataset):
 
     def __init__(self, root_path_1, root_path_2, **kwargs):
-        self.dataset_1 = ImageFolder(root_path_1, **kwargs)
-        self.dataset_2 = ImageFolder(root_path_2, **kwargs)
+        self.dataset_1 = ImageFolder(root_path_1, None,  **kwargs)
+        self.dataset_2 = ImageFolder(root_path_2, None, **kwargs)
 
     def __len__(self):
         return len(self.dataset_1)

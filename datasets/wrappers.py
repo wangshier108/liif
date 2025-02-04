@@ -25,13 +25,17 @@ class SRImplicitPaired(Dataset):
         return len(self.dataset)
 
     def __getitem__(self, idx):
-        img_lr, img_hr = self.dataset[idx]
+        img_lr, img_mask, img_hr = self.dataset[idx]
 
         s = img_hr.shape[-2] // img_lr.shape[-2] # assume int scale
         if self.inp_size is None:
             h_lr, w_lr = img_lr.shape[-2:]
             img_hr = img_hr[:, :h_lr * s, :w_lr * s]
-            crop_lr, crop_hr = img_lr, img_hr
+            if(img_mask != None):
+                img_mask = img_mask[:, :h_lr * s, :w_lr * s]
+                crop_lr, crop_hr, crop_mask = img_lr, img_hr, img_mask
+            else:
+                crop_lr, crop_hr = img_lr, img_hr
         else:
             w_lr = self.inp_size
             x0 = random.randint(0, img_lr.shape[-2] - w_lr)
@@ -41,6 +45,8 @@ class SRImplicitPaired(Dataset):
             x1 = x0 * s
             y1 = y0 * s
             crop_hr = img_hr[:, x1: x1 + w_hr, y1: y1 + w_hr]
+            if(img_mask != None):
+                crop_mask = crop_mask[:, x1: x1 + w_hr, y1: y1 + w_hr]
 
         if self.augment:
             hflip = random.random() < 0.5
@@ -58,6 +64,8 @@ class SRImplicitPaired(Dataset):
 
             crop_lr = augment(crop_lr)
             crop_hr = augment(crop_hr)
+            if(img_mask != None):
+                crop_mask = augment(crop_mask)
 
         hr_coord, hr_rgb = to_pixel_samples(crop_hr.contiguous())
 
@@ -71,12 +79,21 @@ class SRImplicitPaired(Dataset):
         cell[:, 0] *= 2 / crop_hr.shape[-2]
         cell[:, 1] *= 2 / crop_hr.shape[-1]
 
-        return {
-            'inp': crop_lr,
-            'coord': hr_coord,
-            'cell': cell,
-            'gt': hr_rgb
-        }
+        if(img_mask != None):
+            return {
+                'inp': crop_lr,
+                'mask': crop_mask,
+                'coord': hr_coord,
+                'cell': cell,
+                'gt': hr_rgb
+            }
+        else:
+            return {
+                'inp': crop_lr,
+                'coord': hr_coord,
+                'cell': cell,
+                'gt': hr_rgb
+            }
 
 
 def resize_fn(img, size):
@@ -111,8 +128,9 @@ class SRImplicitDownsampled(Dataset):
             w_lr = math.floor(img.shape[-1] / s + 1e-9)
             img = img[:, :round(h_lr * s), :round(w_lr * s)] # assume round int
             img_down = resize_fn(img, (h_lr, w_lr))
-            if(mask):
+            if(mask != None):
                 mask = mask[:, :round(h_lr * s), :round(w_lr * s)] # assume round int
+                mask_down = resize_fn(mask, (h_lr, w_lr))
                 crop_lr, crop_hr, crop_mask = img_down, img, mask
             else:
                 crop_lr, crop_hr = img_down, img
@@ -125,6 +143,7 @@ class SRImplicitDownsampled(Dataset):
             crop_lr = resize_fn(crop_hr, w_lr)
             if(mask != None):
                 crop_mask = mask[:, x0: x0 + w_hr, y0: y0 + w_hr]
+                mask_down = resize_fn(crop_mask, w_lr)
 
         if self.augment:
             hflip = random.random() < 0.5
@@ -144,14 +163,16 @@ class SRImplicitDownsampled(Dataset):
             crop_hr = augment(crop_hr)
             if(mask != None):
                 crop_mask = augment(crop_mask)
+                mask_down = augment(mask_down)
 
         hr_coord, hr_rgb = to_pixel_samples(crop_hr.contiguous())
         # print(f"crop_hr: ({len(crop_hr)}, {crop_hr.shape}),crop_mask: ({len(crop_mask)}, {crop_mask.shape}), hr_coord:({len(hr_coord)}, {hr_coord.shape}) , hr_rgb: ({len(hr_rgb)}, {hr_rgb.shape})")
 
         if self.sample_q is not None:
             if(mask != None):
-                sample_lst = sample_coordinates(crop_hr, self.sample_q, hr_coord, hr_rgb, False, crop_mask)
+                sample_lst = sample_coordinates(crop_hr, self.sample_q, hr_coord, hr_rgb, True, False, None)
             else:
+                print("1111")
                 sample_lst = np.random.choice(
                     len(hr_coord), self.sample_q, replace=False)
             hr_coord = hr_coord[sample_lst]
@@ -163,6 +184,7 @@ class SRImplicitDownsampled(Dataset):
 
         return {
             'inp': crop_lr,
+            'mask': mask_down,
             'coord': hr_coord,
             'cell': cell,
             'gt': hr_rgb

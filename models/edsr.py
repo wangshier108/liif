@@ -107,7 +107,8 @@ class EDSR(nn.Module):
         self.add_mean = MeanShift(args.rgb_range, sign=1)
 
         # define head module
-        m_head = [conv(args.n_colors, n_feats, kernel_size)]
+        # m_head = [conv(args.n_colors, n_feats, kernel_size)]
+        m_head = [conv(4, n_feats, kernel_size)]
 
         # define body module
         m_body = [

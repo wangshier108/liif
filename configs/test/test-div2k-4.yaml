@@ -4,6 +4,7 @@ test_dataset:
     args:
       root_path_1: ./load/div2k/DIV2K_valid_LR_bicubic/X4
       root_path_2: ./load/div2k/DIV2K_valid_HR
+      root_path_mask: /data/home/wanghanying/work/dataset/DIV2K/DIV2K_valid_LR_mask/X4/mask
   wrapper:
     name: sr-implicit-paired
     args: {}

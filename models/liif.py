@@ -31,7 +31,10 @@ class LIIF(nn.Module):
         else:
             self.imnet = None
 
-    def gen_feat(self, inp):
+    def gen_feat(self, inp, mask=None):
+        if(mask != None):
+            # print(f"inp: {inp.shape}, mask: {mask.shape}")
+            inp = torch.cat((inp, mask), dim=1)
         self.feat = self.encoder(inp)# 输入x到前面的EDSR实例，得到特征$z$
         # print("why self.feat.shape: ", self.feat.shape)   #torch.Size([16, 64, 48, 48])
         return self.feat
@@ -116,6 +119,9 @@ class LIIF(nn.Module):
             ret = ret + pred * (area / tot_area).unsqueeze(-1)
         return ret
 
-    def forward(self, inp, coord, cell):
-        self.gen_feat(inp)
+    def forward(self, inp, mask, coord, cell):
+        if(mask != None):
+            self.gen_feat(inp, mask)
+        else:
+            self.gen_feat(inp)
         return self.query_rgb(coord, cell)

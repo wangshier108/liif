@@ -105,7 +105,8 @@ def train(train_loader, model, optimizer):
             batch[k] = v.cuda()
 
         inp = (batch['inp'] - inp_sub) / inp_div
-        pred = model(inp, batch['coord'], batch['cell'])
+        mask = (batch['mask'] - inp_sub) / inp_div
+        pred = model(inp, mask, batch['coord'], batch['cell'])
 
         gt = (batch['gt'] - gt_sub) / gt_div
         loss = loss_fn(pred, gt)

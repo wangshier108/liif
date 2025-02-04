@@ -10,7 +10,7 @@ from torchvision import transforms
 
 from datasets import register
 from utils import to_pixel_samples
-
+from why_utils import sample_coordinates
 
 @register('sr-implicit-paired')
 class SRImplicitPaired(Dataset):
@@ -140,8 +140,9 @@ class SRImplicitDownsampled(Dataset):
         hr_coord, hr_rgb = to_pixel_samples(crop_hr.contiguous())
 
         if self.sample_q is not None:
-            sample_lst = np.random.choice(
-                len(hr_coord), self.sample_q, replace=False)
+            sample_lst = sample_coordinates(crop_hr, self.sample_q, hr_coord, hr_rgb, True, None)
+            # sample_lst = np.random.choice(
+            #     len(hr_coord), self.sample_q, replace=False)
             hr_coord = hr_coord[sample_lst]
             hr_rgb = hr_rgb[sample_lst]
 

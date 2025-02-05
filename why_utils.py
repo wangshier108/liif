@@ -32,29 +32,29 @@ def gradient_based_sampling(img, sample_q):
     sample_lst = np.random.choice(len(prob), sample_q, replace=False, p=prob)
     return sample_lst
 
-def get_gradient_map(img):
-    """ 获取图像的梯度图，用于边缘采样。"""
-    img = img.unsqueeze(0)  # 添加 batch 维度
-    grad_x = F.conv2d(img, torch.tensor([[[[-1, 1]]]]).float(), padding=1)
-    grad_y = F.conv2d(img, torch.tensor([[[[-1], [1]]]]).float(), padding=1)
-    grad_map = torch.sqrt(grad_x**2 + grad_y**2)
-    return grad_map.squeeze(0)  # 移除 batch 维度
+# def get_gradient_map(img):
+#     """ 获取图像的梯度图，用于边缘采样。"""
+#     img = img.unsqueeze(0)  # 添加 batch 维度
+#     grad_x = F.conv2d(img, torch.tensor([[[[-1, 1]]]]).float(), padding=1)
+#     grad_y = F.conv2d(img, torch.tensor([[[[-1], [1]]]]).float(), padding=1)
+#     grad_map = torch.sqrt(grad_x**2 + grad_y**2)
+#     return grad_map.squeeze(0)  # 移除 batch 维度
 
-def sample_based_on_gradients(hr_coord, hr_rgb, grad_map, sample_q):
-    """ 根据梯度图进行采样。"""
-    # 将梯度图标准化到 [0, 1] 范围内
-    grad_map = grad_map - grad_map.min()
-    grad_map = grad_map / grad_map.max()
+# def sample_based_on_gradients(hr_coord, hr_rgb, grad_map, sample_q):
+#     """ 根据梯度图进行采样。"""
+#     # 将梯度图标准化到 [0, 1] 范围内
+#     grad_map = grad_map - grad_map.min()
+#     grad_map = grad_map / grad_map.max()
     
-    # 将梯度图平铺成 1D
-    grad_map = grad_map.view(-1).cpu().numpy()
+#     # 将梯度图平铺成 1D
+#     grad_map = grad_map.view(-1).cpu().numpy()
 
-    # 计算权重分布
-    prob = grad_map / grad_map.sum()
+#     # 计算权重分布
+#     prob = grad_map / grad_map.sum()
 
-    # 按照梯度图的权重进行采样
-    sample_lst = np.random.choice(len(hr_coord), sample_q, replace=False, p=prob)
-    return hr_coord[sample_lst], hr_rgb[sample_lst]
+#     # 按照梯度图的权重进行采样
+#     sample_lst = np.random.choice(len(hr_coord), sample_q, replace=False, p=prob)
+#     return hr_coord[sample_lst], hr_rgb[sample_lst]
 
 def sample_roi_or_random(hr_coord, hr_rgb, roi_mask, sample_q):
     """ 基于ROI区域或者随机选择样本。"""

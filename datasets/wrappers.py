@@ -150,7 +150,7 @@ class SRImplicitDownsampled(Dataset):
 
         if self.sample_q is not None:
             if(mask != None):
-                sample_lst = sample_coordinates(crop_hr, self.sample_q, hr_coord, hr_rgb, False, crop_mask)
+                sample_lst = sample_coordinates(crop_hr, self.sample_q, hr_coord, hr_rgb, False, True, crop_mask)
             else:
                 sample_lst = np.random.choice(
                     len(hr_coord), self.sample_q, replace=False)

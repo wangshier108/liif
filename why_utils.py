@@ -70,6 +70,7 @@ def sample_coordinates(img, sample_q, coord, rgb, grad_based=False, roi_based = 
         sample_lst = gradient_based_sampling(img, sample_q)
         return sample_lst
     elif (roi_based and roi_mask is not None):
+        print("why roi")
         # 基于ROI区域或随机选择
         return sample_roi_or_random(coord, rgb, roi_mask, sample_q)
     else:

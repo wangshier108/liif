@@ -3,18 +3,25 @@ import numpy as np
 from torch.nn.functional import conv2d
 
 def compute_gradient(image):
-    print("image: ", image.shape)
+    # print("image: ", image.shape)
     """ Compute the gradient magnitude of an image. """
     if len(image.shape) == 3:
         image = image.unsqueeze(0)  # Add batch dimension
     sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=torch.float32).view(1, 1, 3, 3)
     sobel_y = torch.tensor([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], dtype=torch.float32).view(1, 1, 3, 3)
+    # grad_x = conv2d(image, sobel_x, padding=1)
+    # grad_y = conv2d(image, sobel_y, padding=1)
     
-    # sobel_x = sobel_x.repeat(3, 1, 1, 1)  # Repeat for 3 channels
-    # sobel_y = sobel_y.repeat(3, 1, 1, 1)  # Repeat for 3 channels
+    grad_x = []
+    grad_y = []
+    for c in range(image.shape[1]):  # Loop over channels
+        grad_x.append(conv2d(image[:, c:c+1, :, :], sobel_x, padding=1))  # Select single channel
+        grad_y.append(conv2d(image[:, c:c+1, :, :], sobel_y, padding=1))
     
-    grad_x = conv2d(image, sobel_x, padding=1)
-    grad_y = conv2d(image, sobel_y, padding=1)
+    # Concatenate results
+    grad_x = torch.cat(grad_x, dim=1)
+    grad_y = torch.cat(grad_y, dim=1)
+   
     gradient = torch.sqrt(grad_x ** 2 + grad_y ** 2)
     return gradient.squeeze(0)  # Remove batch dimension
 
@@ -25,12 +32,43 @@ def gradient_based_sampling(img, sample_q):
     gradient = gradient.mean(dim=0)  # Average over channels
     
     # Normalize gradient to probabilities
-    prob = gradient / gradient.sum()
+    # prob = gradient / gradient.sum()
+    prob = (gradient + 1e-8) / (gradient.sum() + 1e-8)
     prob = prob.view(-1).numpy()
     
+    if np.isnan(prob).any():
+        print("Warning: Probabilities contain NaN values. Replacing NaN with uniform probabilities.")
+        prob = np.nan_to_num(prob, nan=1.0 / len(prob))
+    
+    prob = prob / prob.sum()
     # Sample points
-    sample_lst = np.random.choice(len(prob), sample_q, replace=False, p=prob)
+    total_pixels = len(prob)
+    
+    # Count the number of non-zero probabilities
+    non_zero_count = np.count_nonzero(prob)
+    
+    # If sample_q is greater than the number of non-zero probabilities, prioritize high-gradient points
+    if sample_q > non_zero_count:
+        print(f"Warning: sample_q ({sample_q}) is greater than the number of non-zero gradient points ({non_zero_count}). "
+              f"Sampling all non-zero gradient points and filling the rest randomly.")
+        
+        # Get indices of non-zero probabilities
+        non_zero_indices = np.where(prob > 0)[0]
+        
+        # Sample all non-zero gradient points
+        sample_lst = non_zero_indices[:min(sample_q, non_zero_count)]
+        
+        # If we still need more samples, randomly sample the remaining points (with replacement)
+        if len(sample_lst) < sample_q:
+            remaining_samples = sample_q - len(sample_lst)
+            random_samples = np.random.choice(total_pixels, remaining_samples, replace=False)
+            sample_lst = np.concatenate([sample_lst, random_samples])
+    else:
+        # Sample points based on gradient magnitude
+        sample_lst = np.random.choice(total_pixels, sample_q, replace=False, p=prob)
+    
     return sample_lst
+
 
 def sample_roi_or_random(hr_coord, hr_rgb, roi_mask, sample_q):
     """ 基于ROI区域或者随机选择样本。"""
@@ -66,10 +104,11 @@ def sample_coordinates(img, sample_q, coord, rgb, grad_based=False, roi_based = 
     """ 根据采样策略进行坐标选择。"""
 
     if grad_based:
-        print("why gradient")
+        # print("why gradient")
         sample_lst = gradient_based_sampling(img, sample_q)
         return sample_lst
     elif (roi_based and roi_mask is not None):
+        # print("why roi")
         # 基于ROI区域或随机选择
         return sample_roi_or_random(coord, rgb, roi_mask, sample_q)
     else:

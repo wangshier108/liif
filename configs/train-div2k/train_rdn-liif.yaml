@@ -2,7 +2,8 @@ train_dataset:
   dataset:
     name: image-folder
     args:
-      root_path: ./load/div2k/DIV2K_train_HR
+      root_path: /data/home/wanghanying/work/dataset/DIV2K/DIV2K_train_HR
+      root_path_mask: /data/home/wanghanying/work/dataset/DIV2K/DIV2K_train_HR_mask
       repeat: 20
       cache: in_memory
   wrapper:
@@ -12,13 +13,14 @@ train_dataset:
       scale_max: 4
       augment: true
       sample_q: 2304
-  batch_size: 16
+  batch_size: 32
 
 val_dataset:
   dataset:
     name: image-folder
     args:
-      root_path: ./load/div2k/DIV2K_valid_HR
+      root_path: /data/home/wanghanying/work/dataset/DIV2K/DIV2K_valid_HR
+      root_path_mask: /data/home/wanghanying/work/dataset/DIV2K/DIV2K_valid_HR_mask
       first_k: 10
       repeat: 160
       cache: in_memory
@@ -58,3 +60,4 @@ multi_step_lr:
 
 epoch_val: 1
 epoch_save: 100
+resume: /data/home/wanghanying/work/why/liif/save/_train_rdn-liif/epoch-last.pth

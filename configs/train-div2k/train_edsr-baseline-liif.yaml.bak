@@ -62,5 +62,12 @@ multi_step_lr:
 
 epoch_val: 1
 epoch_save: 100
-# resume: /data/home/wanghanying/work/why/liif/save/_train_edsr-baseline-liif/epoch-last.pth
-# resume: /data/home/wanghanying/work/why/liif/save/train_edsr_baseline_gradient/epoch-last.pth
+
+# path
+path:
+  resume_state: ~
+  use_tb_logger: True
+  wandb:
+    project: ~
+    resume_id: ~
+  name: EDSR_DIV2K_test_wandb

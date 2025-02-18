@@ -83,6 +83,7 @@ def prepare_training():
             lr_scheduler = MultiStepLR(optimizer, **config['multi_step_lr'])
 
     log('model: #params={}'.format(utils.compute_num_params(model, text=True)))
+    log('model: #structure={}'.format(model))
     return model, optimizer, epoch_start, lr_scheduler
 
 

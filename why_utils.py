@@ -61,13 +61,51 @@ def gradient_based_sampling(img, sample_q):
         # If we still need more samples, randomly sample the remaining points (with replacement)
         if len(sample_lst) < sample_q:
             remaining_samples = sample_q - len(sample_lst)
-            random_samples = np.random.choice(total_pixels, remaining_samples, replace=True)
+            random_samples = np.random.choice(total_pixels, remaining_samples, replace=False)
             sample_lst = np.concatenate([sample_lst, random_samples])
     else:
         # Sample points based on gradient magnitude
         sample_lst = np.random.choice(total_pixels, sample_q, replace=False, p=prob)
     
     return sample_lst
+
+def scale_gradient_based_sampling(img, sample_q):
+    # print("why scale")
+    """ Sample points based on gradient magnitude and random sampling, with equal weight (50%) for both. """
+    # Compute gradient
+    gradient = compute_gradient(img)
+    gradient = gradient.mean(dim=0)  # Average over channels
+    
+    # Normalize gradient to probabilities
+    prob = (gradient + 1e-8) / (gradient.sum() + 1e-8)
+    prob = prob.view(-1).numpy()
+    
+    if np.isnan(prob).any():
+        print("Warning: Probabilities contain NaN values. Replacing NaN with uniform probabilities.")
+        prob = np.nan_to_num(prob, nan=1.0 / len(prob))
+    
+    prob = prob / prob.sum()
+
+    total_pixels = len(prob)
+    
+    # Split the number of samples equally between gradient and random sampling
+    # sample_q_gradient = sample_q // 2
+    sample_q_gradient = int(sample_q * 0.6)  # 60% of sample_q for gradient-based sampling
+    
+    sample_q_random = sample_q - sample_q_gradient  # The remaining will be from random
+
+    # Sample points based on gradient probabilities
+    gradient_sample_lst = np.random.choice(total_pixels, sample_q_gradient, replace=False, p=prob)
+    
+    # Sample points randomly (uniform distribution)
+    random_prob = np.ones(total_pixels) / total_pixels  # Uniform random probabilities
+    random_sample_lst = np.random.choice(total_pixels, sample_q_random, replace=False, p=random_prob)
+
+    # Combine the two lists of sampled points
+    sample_lst = np.concatenate([gradient_sample_lst, random_sample_lst])
+
+    return sample_lst
+
 
 def sample_roi_or_random(hr_coord, hr_rgb, roi_mask, sample_q):
     """ 基于ROI区域或者随机选择样本。"""
@@ -104,7 +142,8 @@ def sample_coordinates(img, sample_q, coord, rgb, grad_based=False, roi_mask=Non
 
     if grad_based:
         # print("why gradient")
-        sample_lst = gradient_based_sampling(img, sample_q)
+        # sample_lst = gradient_based_sampling(img, sample_q)
+        sample_lst = scale_gradient_based_sampling(img, sample_q)
         return sample_lst
     elif roi_mask is not None:
         # 基于ROI区域或随机选择

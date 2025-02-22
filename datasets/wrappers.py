@@ -12,6 +12,7 @@ from datasets import register
 from utils import to_pixel_samples
 # from why_kd_utils_not_tensor import get_leaf_nodes, mlp_num
 import why_kd_utils_not_tensor
+import why_kd_utils
 
 @register('sr-implicit-paired')
 class SRImplicitPaired(Dataset):
@@ -149,31 +150,74 @@ class SRImplicitDownsampled(Dataset):
             hr_rgb = hr_rgb[sample_lst]
         # print("why hr_coord.shape: ", hr_coord.shape)
         # print("why : ", torch.is_floating_point(coord) )
-        if(why_kd_utils_not_tensor.is_train):
+        
+        ## not tensor版本
+        # if(why_kd_utils_not_tensor.is_train):
+        #     # print("train--------")
+        #     leaf_nodes = why_kd_utils_not_tensor.get_leaf_nodes(hr_coord.cpu().numpy())
+            
+        #     point_indices = []
+        #     point_coords = []
+        #     # print("why hr_coord.shape: ", hr_coord.shape)
+        #     for batch_idx, batch_leaf_nodes in enumerate(leaf_nodes):
+        #         # print(f"Batch {batch_idx}: {len(batch_leaf_nodes)} leaf nodes")
+        #         why_kd_utils_not_tensor.mlp_num = len(batch_leaf_nodes)
+        #         for i, points in enumerate(batch_leaf_nodes):
+        #             sub_point_indices, sub_points = points
+        #             point_indices.append(sub_point_indices)
+        #             point_coords.append(sub_points)
+            
+        #     point_indices = [torch.from_numpy(x) if isinstance(x, np.ndarray) else x for x in point_indices]
+        #     point_coords = [torch.from_numpy(x) if isinstance(x, np.ndarray) else x for x in point_coords]
+            
+        #     point_indices = torch.stack(point_indices)
+        #     point_coords = torch.stack(point_coords)
+        #     # print("why point_coords: ", point_coords.shape)
+            
+        #     cell = torch.ones_like(hr_coord)
+        #     cell[:, 0] *= 2 / crop_hr.shape[-2]
+        #     cell[:, 1] *= 2 / crop_hr.shape[-1]
+        #     cell = cell.view(why_kd_utils_not_tensor.mlp_num, -1, 2) 
+            
+        #     indices_flat = point_indices.view(-1)
+        #     # 使用索引重排hr_rgb
+        #     hr_rgb = hr_rgb[indices_flat, :]
+        #     return {
+        #         'inp': crop_lr,
+        #         'coord': point_coords,
+        #         "indices": point_indices,
+        #         'cell': cell,
+        #         'gt': hr_rgb
+        #     }
+        
+        ## tensor版本
+        if(why_kd_utils.is_train):
             # print("train--------")
-            leaf_nodes = why_kd_utils_not_tensor.get_leaf_nodes(hr_coord.cpu().numpy())
+            leaf_nodes = why_kd_utils.get_leaf_nodes(hr_coord)
             
             point_indices = []
             point_coords = []
             # print("why hr_coord.shape: ", hr_coord.shape)
             for batch_idx, batch_leaf_nodes in enumerate(leaf_nodes):
                 # print(f"Batch {batch_idx}: {len(batch_leaf_nodes)} leaf nodes")
-                why_kd_utils_not_tensor.mlp_num = len(batch_leaf_nodes)
+                why_kd_utils.mlp_num = len(batch_leaf_nodes)
                 for i, points in enumerate(batch_leaf_nodes):
+                    # print("why points : ", points)
                     sub_point_indices, sub_points = points
                     point_indices.append(sub_point_indices)
                     point_coords.append(sub_points)
             
-            point_indices = [torch.from_numpy(x) if isinstance(x, np.ndarray) else x for x in point_indices]
-            point_coords = [torch.from_numpy(x) if isinstance(x, np.ndarray) else x for x in point_coords]
+            # point_indices = [torch.from_numpy(x) if isinstance(x, np.ndarray) else x for x in point_indices]
+            # point_coords = [torch.from_numpy(x) if isinstance(x, np.ndarray) else x for x in point_coords]
             
             point_indices = torch.stack(point_indices)
             point_coords = torch.stack(point_coords)
+            # print("why point_coords: ", point_coords.shape)
             
             cell = torch.ones_like(hr_coord)
             cell[:, 0] *= 2 / crop_hr.shape[-2]
             cell[:, 1] *= 2 / crop_hr.shape[-1]
-            cell = cell.view(why_kd_utils_not_tensor.mlp_num, -1, 2) 
+            cell = cell.view(why_kd_utils.mlp_num, -1, 2) 
             
             indices_flat = point_indices.view(-1)
             # 使用索引重排hr_rgb

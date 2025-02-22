@@ -30,6 +30,10 @@ class LIIF(nn.Module):
             # print("why mlp_num: ", why_kd_utils_not_tensor.mlp_num)
             self.imnets = nn.ModuleList(models.make(imnet_spec, args={'in_dim': imnet_in_dim}) for _ in range(why_kd_utils_not_tensor.mlp_num))
             # self.imnet = models.make(imnet_spec, args={'in_dim': imnet_in_dim})
+            
+            # self.sub_imnet = nn.ModuleList(models.make(imnet_spec, args={'in_dim': imnet_in_dim}) for _ in range(2))
+            # self.imnets = nn.ModuleList(self.sub_imnet for _ in range(why_kd_utils_not_tensor.mlp_num))
+            
         else:
             print("why imnet is none")
             self.imnet = None
@@ -176,6 +180,15 @@ class LIIF(nn.Module):
 
                 bs, q = coord.shape[:2]
                 pred = self.imnets[indice](inp.view(bs * q, -1)).view(bs, q, -1)
+                
+                # pred_list = []
+                # pred1 = self.imnets[indice][0](inp.view(bs * q, -1)).view(bs, q, -1)
+                # pred2 = self.imnets[indice][1](inp.view(bs * q, -1)).view(bs, q, -1)
+                # pred_list.append(pred1) 
+                # pred_list.append(pred2)
+                # stacked_preds = torch.stack(pred_list)
+                # pred = torch.mean(stacked_preds, dim=0) 
+                
                 # print("why pred.shape: ", pred.shape)           #torch.Size([16, 2304, 3])
                 preds.append(pred)
                 # print("why preds.shape: ", preds.shape)
@@ -195,13 +208,15 @@ class LIIF(nn.Module):
 
     def forward(self, inp, coord, cell):
         self.gen_feat(inp)      
-        pred_list = []      
+          
         # return self.query_rgb(coord, cell)
+        pred_list = []    
         if(why_kd_utils_not_tensor.is_train):
             # print("why train....")
             for i in range(why_kd_utils_not_tensor.mlp_num):
                 sub_coord = coord[:, i, :, :]
                 sub_cell = cell[:, i, :, :]
+                # print("why sub_coord: ", sub_coord.shape)
                 pred = self.multi_query_rgb(sub_coord, i, sub_cell)
                 pred_list.append(pred)
         else:

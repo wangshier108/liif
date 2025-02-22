@@ -7,7 +7,7 @@ max_points_per_leaf = 1000
 
 mlp_num = 4
 
-is_train = False
+is_train = True
 
 def reorder_hr_coords(hr_coords, point_indices):
     # 验证长度一致性
@@ -142,6 +142,7 @@ def get_leaf_nodes(coords):
         coords = np.expand_dims(coords, axis=0) 
     for i in range(batch_size):
         batch_points_indices = np.arange(len(coords[0]))
+        print("why point_indices: ", batch_points_indices)
         leaf_nodes = recursive_split(coords, batch_points_indices)
         all_leaf_nodes.append(leaf_nodes)
     

@@ -35,7 +35,7 @@ import datasets
 import models
 import utils
 from test import eval_psnr
-
+import why_kd_utils
 
 def make_data_loader(spec, tag=''):
     if spec is None:
@@ -105,6 +105,9 @@ def train(train_loader, model, optimizer):
             batch[k] = v.cuda()
 
         inp = (batch['inp'] - inp_sub) / inp_div
+        batch['coord'], batch['cell'], batch['gt'] = why_kd_utils.reorder(batch['coord'], batch['cell'], batch['gt'])
+        # why_kd_utils.reorder(batch['coord'], batch['cell'], batch['gt'])
+        
         pred = model(inp, batch['coord'], batch['cell'])
 
         gt = (batch['gt'] - gt_sub) / gt_div

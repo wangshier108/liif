@@ -11,7 +11,7 @@ from tqdm import tqdm
 import datasets
 import models
 import utils
-import why_kd_utils_not_tensor
+import why_kd_utils
 
 
 def batched_predict(model, inp, coord, cell, bsize):
@@ -25,7 +25,7 @@ def batched_predict(model, inp, coord, cell, bsize):
             qr = min(ql + bsize, n)
             # pred = model.query_rgb(coord[:, ql: qr, :], cell[:, ql: qr, :])
             ## 方式一
-            for i in range(why_kd_utils_not_tensor.mlp_num):
+            for i in range(why_kd_utils.mlp_num):
                 pred = model.multi_query_rgb(coord[:, ql: qr, :], i, cell[:, ql: qr, :])
                 pred_list.append(pred) 
             stacked_preds = torch.stack(pred_list)
@@ -92,6 +92,10 @@ def eval_psnr(loader, model, data_norm=None, eval_type=None, eval_bsize=None,
             batch[k] = v.cuda()
 
         inp = (batch['inp'] - inp_sub) / inp_div
+        
+        # batch['coord'], batch['cell'], batch['gt'] = why_kd_utils.reorder(batch['coord'], batch['cell'], batch['gt'])
+        # why_kd_utils.reorder(batch['coord'], batch['cell'], batch['gt'])
+        
         if eval_bsize is None:
             with torch.no_grad():
                 pred = model(inp, batch['coord'], batch['cell'])

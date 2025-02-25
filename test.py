@@ -11,6 +11,7 @@ from tqdm import tqdm
 import datasets
 import models
 import utils
+import why_kd_utils
 
 
 def batched_predict(model, inp, coord, cell, bsize):
@@ -20,11 +21,39 @@ def batched_predict(model, inp, coord, cell, bsize):
         ql = 0
         preds = []
         while ql < n:
+            pred_list = []
             qr = min(ql + bsize, n)
-            pred = model.query_rgb(coord[:, ql: qr, :], cell[:, ql: qr, :])
+            # pred = model.query_rgb(coord[:, ql: qr, :], cell[:, ql: qr, :])
+            ## 方式一
+            for i in range(why_kd_utils.mlp_num):
+                pred = model.multi_query_rgb(coord[:, ql: qr, :], i, cell[:, ql: qr, :])
+                pred_list.append(pred) 
+            stacked_preds = torch.stack(pred_list)
+            pred = torch.mean(stacked_preds, dim=0)   
+            
+            ## 方式二
+            # coord_bak = coord[:, ql: qr, :]
+            # cell_bak = cell[:, ql: qr, :]
+            # batch_size, num, features = coord_bak.shape
+            # # print("why n : ", num)
+            # s, r = divmod(num, why_kd_utils_not_tensor.mlp_num)
+            # current = 0
+            # for i in range(why_kd_utils_not_tensor.mlp_num):
+            #     size = s + (i < r)
+            #     # print("size: ", size)
+            #     sub_coord = coord_bak[:, current:current+size, :]
+            #     sub_cell = cell_bak[:, current:current+size, :]
+            #     # print("cell.shape: ", sub_cell.shape)
+            #     pred = model.multi_query_rgb(sub_coord, i, sub_cell)
+            #     pred_list.append(pred)
+            #     current += size
+            # pred = torch.cat(pred_list, dim=1)  
+            # # print("why pred.shape: ", pred.shape)          
+            
             preds.append(pred)
             ql = qr
         pred = torch.cat(preds, dim=1)
+        # print("final: ", pred.shape)
     return pred
 
 
@@ -63,10 +92,15 @@ def eval_psnr(loader, model, data_norm=None, eval_type=None, eval_bsize=None,
             batch[k] = v.cuda()
 
         inp = (batch['inp'] - inp_sub) / inp_div
+        
+        # batch['coord'], batch['cell'], batch['gt'] = why_kd_utils.reorder(batch['coord'], batch['cell'], batch['gt'])
+        # why_kd_utils.reorder(batch['coord'], batch['cell'], batch['gt'])
+        
         if eval_bsize is None:
             with torch.no_grad():
                 pred = model(inp, batch['coord'], batch['cell'])
         else:
+            # print("batch['cell]:", batch['cell'])
             pred = batched_predict(model, inp,
                 batch['coord'], batch['cell'], eval_bsize)
         pred = pred * gt_div + gt_sub
@@ -104,10 +138,12 @@ if __name__ == '__main__':
 
     spec = config['test_dataset']
     dataset = datasets.make(spec['dataset'])
+    # print("why 1111")
     dataset = datasets.make(spec['wrapper'], args={'dataset': dataset})
     loader = DataLoader(dataset, batch_size=spec['batch_size'],
         num_workers=8, pin_memory=True)
 
+    # print("why model: ", args.model)
     model_spec = torch.load(args.model)['model']
     model = models.make(model_spec, load_sd=True).cuda()
 

@@ -3,6 +3,7 @@ test_dataset:
     name: image-folder
     args:
       root_path: ./load/benchmark/Set14/HR
+      cache: in_memory
   wrapper:
     name: sr-implicit-downsampled
     args:

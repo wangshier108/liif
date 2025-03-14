@@ -3,6 +3,7 @@ test_dataset:
     name: image-folder
     args:
       root_path: ./load/div2k/DIV2K_valid_HR
+      cache: in_memory
   wrapper:
     name: sr-implicit-downsampled
     args:

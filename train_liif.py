@@ -61,6 +61,7 @@ def make_data_loaders():
 
 def prepare_training():
     if config.get('resume') is not None:
+        print("why resuming...")
         sv_file = torch.load(config['resume'])
         model = models.make(sv_file['model'], load_sd=True).cuda()
         optimizer = utils.make_optimizer(
@@ -123,7 +124,7 @@ def train(train_loader, model, optimizer):
 def main(config_, save_path):
     global config, log, writer
     config = config_
-    log, writer = utils.set_save_path(save_path)
+    log, writer = utils.set_save_path(save_path, False)
     with open(os.path.join(save_path, 'config.yaml'), 'w') as f:
         yaml.dump(config, f, sort_keys=False)
 

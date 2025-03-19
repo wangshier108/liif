@@ -83,6 +83,7 @@ def prepare_training():
             lr_scheduler = MultiStepLR(optimizer, **config['multi_step_lr'])
 
     log('model: #params={}'.format(utils.compute_num_params(model, text=True)))
+    log('model: #structure={}'.format(model))
     return model, optimizer, epoch_start, lr_scheduler
 
 
@@ -123,7 +124,7 @@ def train(train_loader, model, optimizer):
 def main(config_, save_path):
     global config, log, writer
     config = config_
-    log, writer = utils.set_save_path(save_path)
+    log, writer = utils.set_save_path(save_path, False)
     with open(os.path.join(save_path, 'config.yaml'), 'w') as f:
         yaml.dump(config, f, sort_keys=False)
 

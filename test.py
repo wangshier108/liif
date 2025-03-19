@@ -11,7 +11,7 @@ from tqdm import tqdm
 import datasets
 import models
 import utils
-
+import why_kd_utils_not_tensor
 
 def batched_predict(model, inp, coord, cell, bsize):
     with torch.no_grad():
@@ -20,8 +20,34 @@ def batched_predict(model, inp, coord, cell, bsize):
         ql = 0
         preds = []
         while ql < n:
+            pred_list = []
             qr = min(ql + bsize, n)
-            pred = model.query_rgb(coord[:, ql: qr, :], cell[:, ql: qr, :])
+            # pred = model.query_rgb(coord[:, ql: qr, :], cell[:, ql: qr, :])
+            ## 方式一
+            for i in range(why_kd_utils_not_tensor.mlp_num):
+                pred = model.multi_query_rgb(coord[:, ql: qr, :], i, cell[:, ql: qr, :])
+                pred_list.append(pred) 
+            stacked_preds = torch.stack(pred_list)
+            pred = torch.mean(stacked_preds, dim=0)   
+
+            ## 方式二
+            # coord_bak = coord[:, ql: qr, :]
+            # cell_bak = cell[:, ql: qr, :]
+            # batch_size, num, features = coord_bak.shape
+            # # print("why n : ", num)
+            # s, r = divmod(num, why_kd_utils_not_tensor.mlp_num)
+            # current = 0
+            # for i in range(why_kd_utils_not_tensor.mlp_num):
+            #     size = s + (i < r)
+            #     # print("size: ", size)
+            #     sub_coord = coord_bak[:, current:current+size, :]
+            #     sub_cell = cell_bak[:, current:current+size, :]
+            #     # print("cell.shape: ", sub_cell.shape)
+            #     pred = model.multi_query_rgb(sub_coord, i, sub_cell)
+            #     pred_list.append(pred)
+            #     current += size
+            # pred = torch.cat(pred_list, dim=1)  
+            # # print("why pred.shape: ", pred.shape)          
             preds.append(pred)
             ql = qr
         pred = torch.cat(preds, dim=1)

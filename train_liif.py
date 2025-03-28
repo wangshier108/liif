@@ -74,6 +74,8 @@ def prepare_training():
             lr_scheduler.step()
     else:
         model = models.make(config['model']).cuda()
+        from models.patchnet import PatchNetWrapper
+        model = PatchNetWrapper(model)
         optimizer = utils.make_optimizer(
             model.parameters(), config['optimizer'])
         epoch_start = 1
@@ -83,6 +85,7 @@ def prepare_training():
             lr_scheduler = MultiStepLR(optimizer, **config['multi_step_lr'])
 
     log('model: #params={}'.format(utils.compute_num_params(model, text=True)))
+    log('model: #structure={}'.format(model))
     return model, optimizer, epoch_start, lr_scheduler
 
 
@@ -104,10 +107,11 @@ def train(train_loader, model, optimizer):
             batch[k] = v.cuda()
 
         inp = (batch['inp'] - inp_sub) / inp_div
-        pred = model(inp, batch['coord'], batch['cell'])
+        # pred = model(inp, batch['coord'], batch['cell'])
 
         gt = (batch['gt'] - gt_sub) / gt_div
-        loss = loss_fn(pred, gt)
+        # loss = loss_fn(pred, gt)
+        loss = model(inp, batch['coord'], batch['cell'], gt)
 
         train_loss.add(loss.item())
 

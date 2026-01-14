@@ -34,7 +34,7 @@ class LIIF(nn.Module):
         self.feat = self.encoder(inp)
         return self.feat
 
-    def query_rgb(self, coord, cell=None):
+    def query_rgb(self, coord, cell=None, lr=None):
         feat = self.feat
 
         if self.imnet is None:
@@ -91,6 +91,7 @@ class LIIF(nn.Module):
 
                 bs, q = coord.shape[:2]
                 pred = self.imnet(inp.view(bs * q, -1)).view(bs, q, -1)
+                # pred = self.imnet(inp.view(bs * q, -1), lr).view(bs, q, -1)
                 preds.append(pred)
 
                 area = torch.abs(rel_coord[:, :, 0] * rel_coord[:, :, 1])

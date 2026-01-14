@@ -1,0 +1,44 @@
+set5
+x2
+result: 38.0136
+x3
+result: 34.4488
+x4
+result: 32.2309
+x6*
+result: 28.9736
+x8*
+result: 27.0535
+set14
+x2
+result: 33.6739
+x3
+result: 30.3598
+x4
+result: 28.6529
+x6*
+result: 26.5063
+x8*
+result: 24.9873
+b100
+x2
+result: 32.1930
+x3
+result: 29.1377
+x4
+result: 27.6279
+x6*
+result: 25.8726
+x8*
+result: 24.8231
+urban100
+x2
+result: 32.2632
+x3
+result: 28.3043
+x4
+result: 26.2340
+x6*
+result: 23.8591
+x8*
+result: 22.5310

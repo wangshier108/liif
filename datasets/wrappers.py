@@ -10,7 +10,7 @@ from torchvision import transforms
 
 from datasets import register
 from utils import to_pixel_samples
-
+import torch.nn.functional as F
 
 @register('sr-implicit-paired')
 class SRImplicitPaired(Dataset):
@@ -139,11 +139,71 @@ class SRImplicitDownsampled(Dataset):
 
         hr_coord, hr_rgb = to_pixel_samples(crop_hr.contiguous())
 
+        
+        def select_hard_patch(crop_hr, sample_q, hr_coord, hr_rgb, patch_size=None):
+            """
+            兼容原始随机采样逻辑的多特征融合采样
+            
+            参数:
+                crop_hr (Tensor): (3, H, W) 输入图像
+                sample_q (int): 采样点数
+                hr_coord (Tensor): 全图像坐标 (H*W, 2)
+                hr_rgb (Tensor): 全图像RGB (H*W, 3)
+                patch_size (int or None): 可选patch大小
+                
+            返回:
+                sample_lst (LongTensor): 采样点索引 (sample_q,)
+            """
+            # 1. 保持与原始逻辑完全相同的接口
+            c, H, W = crop_hr.shape
+            
+            # 计算灰度图
+            gray = crop_hr.mean(dim=0, keepdim=True)  # (1, H, W)
+            
+            # 特征提取
+            with torch.no_grad():
+                # 计算梯度 (Sobel)
+                sobel_kernel_x = torch.tensor([[[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]]], dtype=torch.float32, device=crop_hr.device)
+                sobel_kernel_y = torch.tensor([[[[-1, -2, -1], [0, 0, 0], [1, 2, 1]]]], dtype=torch.float32, device=crop_hr.device)
+                
+                sobel_x = F.conv2d(gray.unsqueeze(0), sobel_kernel_x, padding=1).squeeze(0)
+                sobel_y = F.conv2d(gray.unsqueeze(0), sobel_kernel_y, padding=1).squeeze(0)
+                gradient = torch.sqrt(sobel_x ** 2 + sobel_y ** 2)
+
+                # 计算颜色方差信息
+                color_var = crop_hr.var(dim=0, keepdim=True)
+
+                # 计算频域高频信息（使用 FFT 代替 DCT）
+                fft_coeff = torch.fft.fft2(gray)
+                fft_coeff = torch.abs(fft_coeff)  # 取模值
+                h_freq, w_freq = max(1, H // 4), max(1, W // 4)
+                high_freq = fft_coeff[:, -h_freq:, -w_freq:].mean() * torch.ones_like(gray)
+
+                # 计算融合特征 (1, H, W)
+                combined = (gradient / (gradient.max() + 1e-8) + 
+                            0.5 * color_var / (color_var.max() + 1e-8) + 
+                            0.3 * high_freq / (high_freq.max() + 1e-8)).squeeze(0)
+
+            # 归一化为概率分布
+            prob_map = combined.view(-1).clamp(min=1e-8)  # 避免0概率
+            prob_map /= prob_map.sum()  # 归一化
+
+            # 根据权重采样 sample_q 个像素
+            sample_lst = torch.multinomial(prob_map, sample_q, replacement=False)
+            # print("sample_lst: ", sample_lst.shape)
+
+            return sample_lst
+        
         if self.sample_q is not None:
-            sample_lst = np.random.choice(
-                len(hr_coord), self.sample_q, replace=False)
-            hr_coord = hr_coord[sample_lst]
-            hr_rgb = hr_rgb[sample_lst]
+            sample_lst = select_hard_patch(crop_hr, self.sample_q, hr_coord, hr_rgb)
+        hr_coord = hr_coord[sample_lst]
+        hr_rgb = hr_rgb[sample_lst]
+        
+        # if self.sample_q is not None:
+        #     sample_lst = np.random.choice(
+        #         len(hr_coord), self.sample_q, replace=False)
+        #     hr_coord = hr_coord[sample_lst]
+        #     hr_rgb = hr_rgb[sample_lst]
 
         cell = torch.ones_like(hr_coord)
         cell[:, 0] *= 2 / crop_hr.shape[-2]

@@ -42,7 +42,7 @@ model:
       args:
         no_upsampling: true
     imnet_spec:
-      name: mlp
+      name: refinedmlp21
       args:
         out_dim: 3
         hidden_list: [256, 256, 256, 256]
@@ -51,10 +51,12 @@ optimizer:
   name: adam
   args:
     lr: 1.e-4
-epoch_max: 1000
+epoch_max: 1500
 multi_step_lr:
-  milestones: [200, 400, 600, 800]
+  # milestones: [200, 400, 600, 800, 1000, 1200, 1400]
+  milestones: [300, 600, 900, 1200, 1400]
   gamma: 0.5
 
 epoch_val: 1
 epoch_save: 100
+# resume: /data/home/wanghanying/final/liif/save/train_edsr_sample_residual_refinemlp2/epoch-last.pth
